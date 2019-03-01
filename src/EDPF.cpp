@@ -1,7 +1,10 @@
 #include "EDPF.h"
 
-EDPF::EDPF(cv::Mat src_img)
-    : src_img_(src_img), height_(src_img.rows), width_(src_img.cols) {
+EDPF::EDPF(const char* src_path) : src_path_(src_path) {
+  src_img_ = cv::imread(src_path_, 0);
+  height_ = src_img_.rows;
+  width_ = src_img_.cols;
+
   gradient_map_ = new int32_t[height_ * width_]();  // all init-ed to 0
   direction_map_ = new int8_t[height_ * width_]();  // all init-ed to 0
   anchor_map_ = new int8_t[height_ * width_]();     // all init-ed to 0
@@ -68,7 +71,7 @@ void EDPF::suppress_noise() {
  *    Gy = (F-A) + 2*(G-B) + (H-C)
  */
 
-int32_t EDPF::prewitt_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy) {
+void EDPF::prewitt_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy) {
   // Gx = (C-A) + (E-D) + (H-F)
   Gx = std::abs((smooth_at(i - 1, j + 1) - smooth_at(i - 1, j - 1)) +
                 (smooth_at(i, j + 1) - smooth_at(i, j - 1)) +
@@ -79,7 +82,7 @@ int32_t EDPF::prewitt_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy) {
                 (smooth_at(i + 1, j + 1) - smooth_at(i - 1, j + 1)));
 }
 
-int32_t EDPF::sobel_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy) {
+void EDPF::sobel_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy) {
   // Gx = (C-A) + 2 * (E-D) + (H-F)
   Gx = std::abs((smooth_at(i - 1, j + 1) - smooth_at(i - 1, j - 1)) +
                 2 * (smooth_at(i, j + 1) - smooth_at(i, j - 1)) +
@@ -255,7 +258,7 @@ int32_t EDPF::find_next_hop(const std::vector<cv::Point>& pts) {
   }
 
   int32_t max_i = -1, max_G = 0;
-  for (int32_t i = 0; i < pts.size(); ++i) {
+  for (int32_t i = 0; i < (int32_t)pts.size(); ++i) {
     // anchor pixel / traversed edge (closed)
     if (edge_at(pts[i].x, pts[i].y) == 1) {
       return -1;
@@ -402,6 +405,10 @@ void EDPF::traverse_right(std::stack<TraverseNode>& nodes,
 }
 
 void EDPF::verify_edges() {}
+
+void EDPF::show_input() {
+  cv::imshow("Source Image", src_img_);
+}
 
 void EDPF::show_output() {
   cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));

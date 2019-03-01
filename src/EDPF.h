@@ -53,6 +53,8 @@ enum class ChainEnd { NA = 0, Head, Tail };
 
 class EDPF {
  private:
+  std::string src_path_;
+
   cv::Mat src_img_;
   cv::Mat smth_img_;
   int32_t height_, width_;
@@ -76,8 +78,8 @@ class EDPF {
   int8_t& edge_at(int32_t i, int32_t j);
   int8_t smooth_at(int32_t i, int32_t j);
 
-  int32_t prewitt_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy);
-  int32_t sobel_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy);
+  void prewitt_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy);
+  void sobel_filter(int32_t i, int32_t j, int32_t& Gx, int32_t& Gy);
 
   void sort_anchors();
   void traverse_up(std::stack<TraverseNode>& nodes, int32_t row, int32_t col);
@@ -103,9 +105,10 @@ class EDPF {
   void verify_edges();
 
  public:
-  EDPF(cv::Mat src_img);
+  EDPF(const char* src_path);
   ~EDPF();
 
+  void show_input();
   void show_output();
 };
 

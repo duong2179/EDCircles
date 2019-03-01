@@ -1,15 +1,15 @@
 #include <iostream>
-#include <opencv2/opencv.hpp>
 
 #include "EDPF.h"
 
-using namespace std;
-
 int main(int argc, char** argv) {
-  cv::Mat src_img = cv::imread(argv[1], 0);
-  cv::imshow("Source Image", src_img);
+  if (argc != 2) {
+    std::cerr << "[Error] Wrong input." << std::endl;
+    exit(1);
+  }
 
-  EDPF edpf(src_img);
+  EDPF edpf(argv[1]);
+  edpf.show_input();
   edpf.show_output();
 
   cv::waitKey();
