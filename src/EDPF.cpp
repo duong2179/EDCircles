@@ -115,9 +115,9 @@ void EDPF::build_gradient_n_direction_map() {
       gradient_at(i, j) = G;
       if (gradient_at(i, j) >= GRADIENT_THRES) {
         if (Gx >= Gy) {
-          direction_at(i, j) = DIRECT_VERTL;
+          direction_at(i, j) = (int8_t)EdgeDirection::Vertical;
         } else {
-          direction_at(i, j) = DIRECT_HORZL;
+          direction_at(i, j) = (int8_t)EdgeDirection::Horizontal;
         }
       }
     }
@@ -133,7 +133,7 @@ void EDPF::scan_for_anchors() {
       }
 
       // vertical edge
-      if (direction_at(i, j) == DIRECT_VERTL) {
+      if (direction_at(i, j) == (int8_t)EdgeDirection::Vertical) {
         int32_t diff_left = gradient_at(i, j) - gradient_at(i, j - 1);
         int32_t diff_right = gradient_at(i, j) - gradient_at(i, j + 1);
         if (diff_left >= ANCHOR_THRES && diff_right >= ANCHOR_THRES) {
@@ -141,7 +141,7 @@ void EDPF::scan_for_anchors() {
         }
       }
       // horizontal
-      else if (direction_at(i, j) == DIRECT_HORZL) {
+      else if (direction_at(i, j) == (int8_t)EdgeDirection::Horizontal) {
         int32_t diff_top = gradient_at(i, j) - gradient_at(i - 1, j);
         int32_t diff_bottom = gradient_at(i, j) - gradient_at(i + 1, j);
         if (diff_top >= ANCHOR_THRES && diff_bottom >= ANCHOR_THRES) {
@@ -192,12 +192,12 @@ void EDPF::draw_edges() {
     // nodes to traverse for current edge segment
     std::stack<TraverseNode> nodes;
 
-    if (direction_at(row, col) == DIRECT_VERTL) {
-      nodes.emplace(row, col, TRAVERSE_UP);
-      nodes.emplace(row, col, TRAVERSE_DOWN);
-    } else if (direction_at(row, col) == DIRECT_HORZL) {
-      nodes.emplace(row, col, TRAVERSE_LEFT);
-      nodes.emplace(row, col, TRAVERSE_RIGHT);
+    if (direction_at(row, col) == (int8_t)EdgeDirection::Vertical) {
+      nodes.emplace(row, col, TraverseDirection::Up);
+      nodes.emplace(row, col, TraverseDirection::Down);
+    } else if (direction_at(row, col) == (int8_t)EdgeDirection::Horizontal) {
+      nodes.emplace(row, col, TraverseDirection::Left);
+      nodes.emplace(row, col, TraverseDirection::Right);
     }
 
     while (!nodes.empty()) {
@@ -206,17 +206,19 @@ void EDPF::draw_edges() {
 
       // which direction to traverse
       switch (node.dir) {
-        case TRAVERSE_UP:
+        case TraverseDirection::Up:
           traverse_up(nodes, node.row, node.col);
           break;
-        case TRAVERSE_DOWN:
+        case TraverseDirection::Down:
           traverse_down(nodes, node.row, node.col);
           break;
-        case TRAVERSE_LEFT:
+        case TraverseDirection::Left:
           traverse_left(nodes, node.row, node.col);
           break;
-        case TRAVERSE_RIGHT:
+        case TraverseDirection::Right:
           traverse_right(nodes, node.row, node.col);
+          break;
+        default:
           break;
       }
     }
@@ -244,11 +246,12 @@ ChainEnd EDPF::belong_to_current_chain(const cv::Point& p) {
   std::vector<cv::Point>& points = chains_.back().points;
   const cv::Point& lp = points.back();
   const cv::Point& fp = points.front();
-  if (std::abs(lp.x - p.x) == 1 || std::abs(lp.y - p.y) == 1) {
+  if (std::abs(lp.x - p.x) <= 1 || std::abs(lp.y - p.y) <= 1) {
     return ChainEnd::Tail;
-  } else if (std::abs(fp.x - p.x) == 1 || std::abs(fp.y - p.y) == 1) {
+  } else if (std::abs(fp.x - p.x) <= 1 || std::abs(fp.y - p.y) <= 1) {
     return ChainEnd::Head;
   }
+
   return ChainEnd::NA;
 }
 
@@ -284,7 +287,7 @@ bool EDPF::move_to_next_hop(const std::vector<cv::Point>& pts,
   const cv::Point& next_pt = pts[next_idx];
   edge_at(next_pt.x, next_pt.y) = 1;
 
-  // next hop is neighboring with tail of current chain
+  // next hop is neighboring with head / tail of current chain
   ChainEnd end = belong_to_current_chain(next_pt);
   if (ChainEnd::NA != end) {
     append_to_current_chain(end, next_pt);
@@ -304,6 +307,33 @@ bool EDPF::hit_border(int32_t row, int32_t col) {
   return (row <= 1 || row >= height_ - 2 || col <= 1 || col >= width_ - 2);
 }
 
+std::vector<cv::Point> EDPF::neighbors(int32_t row,
+                                       int32_t col,
+                                       TraverseDirection dir) {
+  std::vector<cv::Point> pts;
+  switch (dir) {
+    case TraverseDirection::Up:
+      pts = {cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
+             cv::Point(row - 1, col + 1)};
+      break;
+    case TraverseDirection::Down:
+      pts = {cv::Point(row + 1, col - 1), cv::Point(row + 1, col),
+             cv::Point(row + 1, col + 1)};
+      break;
+    case TraverseDirection::Left:
+      pts = {cv::Point(row - 1, col - 1), cv::Point(row, col - 1),
+             cv::Point(row + 1, col - 1)};
+      break;
+    case TraverseDirection::Right:
+      pts = {cv::Point(row - 1, col + 1), cv::Point(row, col + 1),
+             cv::Point(row + 1, col + 1)};
+      break;
+    default:
+      break;
+  }
+  return pts;
+}
+
 void EDPF::traverse_up(std::stack<TraverseNode>& nodes,
                        int32_t row,
                        int32_t col) {
@@ -313,19 +343,17 @@ void EDPF::traverse_up(std::stack<TraverseNode>& nodes,
   }
 
   // keep moving up
-  while (row > 1 && direction_at(row, col) == DIRECT_VERTL) {
-    std::vector<cv::Point> pts = {cv::Point(row - 1, col - 1),
-                                  cv::Point(row - 1, col),
-                                  cv::Point(row - 1, col + 1)};
+  while (row > 1 && direction_at(row, col) == (int8_t)EdgeDirection::Vertical) {
+    std::vector<cv::Point> pts = neighbors(row, col, TraverseDirection::Up);
     if (!move_to_next_hop(pts, row, col)) {
       return;
     }
   }
 
   // direction changed
-  if (direction_at(row, col) == DIRECT_HORZL) {
-    nodes.emplace(row, col, TRAVERSE_LEFT);
-    nodes.emplace(row, col, TRAVERSE_RIGHT);
+  if (direction_at(row, col) == (int8_t)EdgeDirection::Horizontal) {
+    nodes.emplace(row, col, TraverseDirection::Left);
+    nodes.emplace(row, col, TraverseDirection::Right);
   }
 }
 
@@ -338,19 +366,18 @@ void EDPF::traverse_down(std::stack<TraverseNode>& nodes,
   }
 
   // keep moving down
-  while (row < height_ - 2 && direction_at(row, col) == DIRECT_VERTL) {
-    std::vector<cv::Point> pts = {cv::Point(row + 1, col - 1),
-                                  cv::Point(row + 1, col),
-                                  cv::Point(row + 1, col + 1)};
+  while (row < height_ - 2 &&
+         direction_at(row, col) == (int8_t)EdgeDirection::Vertical) {
+    std::vector<cv::Point> pts = neighbors(row, col, TraverseDirection::Down);
     if (!move_to_next_hop(pts, row, col)) {
       return;
     }
   }
 
   // direction changed
-  if (direction_at(row, col) == DIRECT_HORZL) {
-    nodes.emplace(row, col, TRAVERSE_LEFT);
-    nodes.emplace(row, col, TRAVERSE_RIGHT);
+  if (direction_at(row, col) == (int8_t)EdgeDirection::Horizontal) {
+    nodes.emplace(row, col, TraverseDirection::Left);
+    nodes.emplace(row, col, TraverseDirection::Right);
   }
 }
 
@@ -363,19 +390,18 @@ void EDPF::traverse_left(std::stack<TraverseNode>& nodes,
   }
 
   // keep moving left
-  while (col > 1 && direction_at(row, col) == DIRECT_HORZL) {
-    std::vector<cv::Point> pts = {cv::Point(row - 1, col - 1),
-                                  cv::Point(row, col - 1),
-                                  cv::Point(row + 1, col - 1)};
+  while (col > 1 &&
+         direction_at(row, col) == (int8_t)EdgeDirection::Horizontal) {
+    std::vector<cv::Point> pts = neighbors(row, col, TraverseDirection::Left);
     if (!move_to_next_hop(pts, row, col)) {
       return;
     }
   }
 
   // direction changed
-  if (direction_at(row, col) == DIRECT_VERTL) {
-    nodes.emplace(row, col, TRAVERSE_UP);
-    nodes.emplace(row, col, TRAVERSE_DOWN);
+  if (direction_at(row, col) == (int8_t)EdgeDirection::Vertical) {
+    nodes.emplace(row, col, TraverseDirection::Up);
+    nodes.emplace(row, col, TraverseDirection::Down);
   }
 }
 
@@ -388,19 +414,18 @@ void EDPF::traverse_right(std::stack<TraverseNode>& nodes,
   }
 
   // keep moving right
-  while (col < width_ - 2 && direction_at(row, col) == DIRECT_HORZL) {
-    std::vector<cv::Point> pts = {cv::Point(row - 1, col + 1),
-                                  cv::Point(row, col + 1),
-                                  cv::Point(row + 1, col + 1)};
+  while (col < width_ - 2 &&
+         direction_at(row, col) == (int8_t)EdgeDirection::Horizontal) {
+    std::vector<cv::Point> pts = neighbors(row, col, TraverseDirection::Right);
     if (!move_to_next_hop(pts, row, col)) {
       return;
     }
   }
 
   // direction changed
-  if (direction_at(row, col) == DIRECT_VERTL) {
-    nodes.emplace(row, col, TRAVERSE_UP);
-    nodes.emplace(row, col, TRAVERSE_DOWN);
+  if (direction_at(row, col) == (int8_t)EdgeDirection::Vertical) {
+    nodes.emplace(row, col, TraverseDirection::Up);
+    nodes.emplace(row, col, TraverseDirection::Down);
   }
 }
 
@@ -416,7 +441,7 @@ void EDPF::show_output() {
   int32_t long_chains = 0;
 
   for (const auto& chain : chains_) {
-    if (chain.points.size() < 10) {
+    if (chain.points.size() < MIN_EDGE_LEN) {
       continue;
     }
     long_chains++;
@@ -425,8 +450,8 @@ void EDPF::show_output() {
     }
   }
 
-  std::cout << "No chains: " << chains_.size() << "\n";
-  std::cout << "No long chains: " << long_chains << "\n";
+  std::cout << "No. chains: " << chains_.size() << "\n";
+  std::cout << "No. long chains: " << long_chains << "\n";
 
   cv::imshow("So far", output_img);
 }

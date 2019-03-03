@@ -1,22 +1,14 @@
 #ifndef EDPF_H_
 #define EDPF_H_
 
-// Edge direction
-#define DIRECT_VERTL 1
-#define DIRECT_HORZL 2
-
-// Which direction to traverse while drawing edges
-#define TRAVERSE_UP 1
-#define TRAVERSE_DOWN 2
-#define TRAVERSE_LEFT 3
-#define TRAVERSE_RIGHT 4
-
 // Parameter free for EDPF (refer to [52])
 #define GAUSS_FILTER cv::Size(5, 5)
 #define GAUSS_SIGMA 1.0
 #define GRADIENT_THRES 25
 #define ANCHOR_THRES 3
 #define DETAIL_RATIO 1
+
+#define MIN_EDGE_LEN 10
 
 #include <stack>
 #include <vector>
@@ -34,11 +26,21 @@ static std::vector<cv::Vec3b> EdgeColors = {cv::Vec3b(255, 255, 255),  // White
                                             cv::Vec3b(0, 128, 128),  // Olive
                                             cv::Vec3b(128, 128, 128)};  // Gray
 
+// Edge direction
+enum class EdgeDirection { NA = 0, Vertical, Horizontal };
+
+// Which direction to traverse while drawing edges
+enum class TraverseDirection { NA = 0, Up, Down, Left, Right };
+
+// To which end the next hop will be added to current chain
+enum class ChainEnd { NA = 0, Head, Tail };
+
 struct TraverseNode {
   int32_t row, col;
-  int32_t dir;
+  TraverseDirection dir;
 
-  TraverseNode(int32_t x, int32_t y, int32_t d) : row(x), col(y), dir(d) {}
+  TraverseNode(int32_t x, int32_t y, TraverseDirection d)
+      : row(x), col(y), dir(d) {}
 };
 
 struct EdgeChain {
@@ -48,8 +50,6 @@ struct EdgeChain {
 
   EdgeChain(int32_t i, cv::Vec3b c) : index(i), color(c) {}
 };
-
-enum class ChainEnd { NA = 0, Head, Tail };
 
 class EDPF {
  private:
@@ -90,6 +90,9 @@ class EDPF {
                       int32_t col);
 
   bool hit_border(int32_t row, int32_t col);
+  std::vector<cv::Point> neighbors(int32_t row,
+                                   int32_t col,
+                                   TraverseDirection dir);
   int32_t find_next_hop(const std::vector<cv::Point>& pts);
   bool move_to_next_hop(const std::vector<cv::Point>& pts,
                         int32_t& row,
