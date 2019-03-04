@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "EDPF.h"
+#include "EDCircles.h"
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -8,11 +8,7 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  EDPF edpf(argv[1]);
-  edpf.show_input();
-  edpf.show_output();
-
-  cv::waitKey();
+  EDCircles edcircles(argv[1]);
 
   return 0;
 }
