@@ -6,17 +6,18 @@
 #include <iostream>
 #include <vector>
 
-// Circle fitter (refer to [64])
-struct Circle {
+// x^2 + y^2 = rad^2
+struct CircleEquation {
   double xc, yc, rad;
 
-  Circle(double x, double y, double r) : xc(x), yc(y), rad(r) {}
-  Circle() : Circle(0.0, 0.0, 0.0) {}
-  ~Circle() {}
+  CircleEquation(double x, double y, double r) : xc(x), yc(y), rad(r) {}
+  CircleEquation() : CircleEquation(0.0, 0.0, 0.0) {}
+  ~CircleEquation() {}
 
-  friend std::ostream& operator<<(std::ostream& os, const Circle& cir);
+  friend std::ostream& operator<<(std::ostream& os, const CircleEquation& cir);
 };
 
+// Circle fitter (refer to [64])
 class CircleFitter {
  private:
   static double calc_bar(const std::vector<double>& us);
@@ -31,7 +32,7 @@ class CircleFitter {
  public:
   static bool least_square_fit(const std::vector<double>& xs,
                                const std::vector<double>& ys,
-                               Circle& cir,
+                               CircleEquation& cir,
                                double& error);
 };
 

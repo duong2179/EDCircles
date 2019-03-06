@@ -1,7 +1,7 @@
 #include "CircleFitter.h"
 
-std::ostream& operator<<(std::ostream& os, const Circle& cir) {
-  os << "Circle: (" << cir.xc << "," << cir.yc << "," << cir.rad << ")";
+std::ostream& operator<<(std::ostream& os, const CircleEquation& cir) {
+  os << "CircleEquation: (" << cir.xc << "," << cir.yc << "," << cir.rad << ")";
   return os;
 }
 
@@ -58,8 +58,12 @@ double CircleFitter::calc_suvv(const std::vector<double>& us,
 
 bool CircleFitter::least_square_fit(const std::vector<double>& xs,
                                     const std::vector<double>& ys,
-                                    Circle& cir,
+                                    CircleEquation& cir,
                                     double& error) {
+  if (xs.size() != ys.size() || xs.size() < 3) {
+    return false;
+  }
+
   int32_t N = xs.size();
 
   double xbar = calc_bar(xs);
@@ -82,7 +86,7 @@ bool CircleFitter::least_square_fit(const std::vector<double>& xs,
   double e5 = 0.5 * (svvv + svuu);
 
   double delta = (suu * svv - suv * suv);
-  if (delta < 1e-6) {
+  if (std::abs(delta) < 1e-6) {
     return false;
   }
   double uc = (svv * e4 - suv * e5) / delta;

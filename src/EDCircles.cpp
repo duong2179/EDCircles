@@ -35,17 +35,18 @@ void EDCircles::find_circle_candidates() {
       ys.push_back(p.x);
     }
 
-    Circle cir;
+    CircleEquation cir;
     double err = 0.0;
     bool fit = CircleFitter::least_square_fit(xs, ys, cir, err);
     if (fit && err < CIRCLE_FIT_ERR_THRES) {
-      std::cout << "Circle candidate: " << cir << ", err: " << err << std::endl;
+      std::cout << "CircleEquation candidate: " << cir << ", err: " << err
+                << std::endl;
       circle_candidates_.emplace_back(cir, chain.hops);
     } else {
       remaining_edge_segments_.push_back(chain);
     }
   }
 
-  std::cout << circle_candidates_.size() << " circle candidates found"
-            << std::endl;
+  auto num_candidates = circle_candidates_.size();
+  std::cout << num_candidates << " circle candidates found" << std::endl;
 }

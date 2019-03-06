@@ -8,12 +8,13 @@
 #define CIRCLE_FIT_ERR_THRES 1.5
 
 struct CircleCandidate {
-  Circle circle;
+  CircleEquation circle;
   std::vector<cv::Point> hops;
 
-  CircleCandidate(const Circle& cir, const std::vector<cv::Point>& pts)
+  CircleCandidate(const CircleEquation& cir, const std::vector<cv::Point>& pts)
       : circle(cir), hops(pts) {}
-  CircleCandidate() : circle(Circle()), hops(std::vector<cv::Point>()) {}
+  CircleCandidate()
+      : circle(CircleEquation()), hops(std::vector<cv::Point>()) {}
   ~CircleCandidate() {}
 };
 
