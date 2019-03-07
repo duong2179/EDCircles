@@ -23,7 +23,7 @@ class LineFitter {
  public:
   static bool least_square_fit(const std::vector<double>& xs,
                                const std::vector<double>& ys,
-                               CircleEquation& cir,
+                               LineEquation& cir,
                                double& error);
 };
 

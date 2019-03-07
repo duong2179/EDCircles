@@ -31,5 +31,7 @@ bool LineFitter::least_square_fit(const std::vector<double>& xs,
   line.a = a;
   line.b = b;
 
+  error = 0.0;
+
   return true;
 }
