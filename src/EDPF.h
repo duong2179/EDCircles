@@ -94,12 +94,16 @@ class EDPF {
   bool hit_border(const cv::Point& p);
 
   std::vector<cv::Point> neighbors(const cv::Point& hop, DrawDirection dir);
+  std::vector<cv::Point> neighbors(const cv::Point& hop);
   const cv::Point& find_best_hop(const std::vector<cv::Point>& pts);
   bool validate_chain_width(const cv::Point& next_hop);
-  void move_to_next_hop(const cv::Point& p, ChainEnd end);
-  void make_new_chain(const cv::Point& p);
-  void grow_current_chain(ChainEnd end, const cv::Point& p);
+  void move_to_next_hop(const cv::Point& hop, ChainEnd end);
+  void make_new_chain(const cv::Point& hop);
+  void grow_current_chain(ChainEnd end, const cv::Point& hop);
   ChainEnd which_end_to_grow(const cv::Point& p);
+
+  void eliminate_short_chains();
+  void reindex_chains();
 
   void suppress_noise();
   void build_gradient_n_direction_map();

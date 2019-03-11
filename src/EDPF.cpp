@@ -273,48 +273,48 @@ void EDPF::draw_edges() {
   }
 }
 
-void EDPF::make_new_chain(const cv::Point& p) {
+void EDPF::make_new_chain(const cv::Point& hop) {
   int32_t chain_idx = chains_.size() + 1;
   EdgeChain new_chain(chain_idx);
-  new_chain.hops.push_back(p);
+  new_chain.hops.push_back(hop);
   chains_.push_back(new_chain);
   current_chain_ = &chains_.back();
-  chain_at(p) = chain_idx;
+  chain_at(hop) = chain_idx;
 }
 
-void EDPF::grow_current_chain(ChainEnd end, const cv::Point& p) {
-  std::vector<cv::Point>& points = current_chain_->hops;
+void EDPF::grow_current_chain(ChainEnd end, const cv::Point& hop) {
+  std::vector<cv::Point>& hops = current_chain_->hops;
   if (end == ChainEnd::Tail) {
-    points.push_back(p);
+    hops.push_back(hop);
   } else if (end == ChainEnd::Head) {
-    points.insert(points.begin(), p);
+    hops.insert(hops.begin(), hop);
   }
 }
 
-ChainEnd EDPF::which_end_to_grow(const cv::Point& p) {
-  std::vector<cv::Point>& points = current_chain_->hops;
-  const cv::Point& lp = points.back();
-  const cv::Point& fp = points.front();
-  if (lp == p) {
+ChainEnd EDPF::which_end_to_grow(const cv::Point& hop) {
+  std::vector<cv::Point>& hops = current_chain_->hops;
+  const cv::Point& lp = hops.back();
+  const cv::Point& fp = hops.front();
+  if (lp == hop) {
     return ChainEnd::Tail;
-  } else if (fp == p) {
+  } else if (fp == hop) {
     return ChainEnd::Head;
   }
   return ChainEnd::NA;
 }
 
-const cv::Point& EDPF::find_best_hop(const std::vector<cv::Point>& pts) {
+const cv::Point& EDPF::find_best_hop(const std::vector<cv::Point>& hops) {
   int32_t max_i = 0;
-  int32_t max_G = gradient_at(pts[max_i]);
+  int32_t max_G = gradient_at(hops[max_i]);
 
-  for (int32_t i = 1; i < (int32_t)pts.size(); ++i) {
-    if (max_G < gradient_at(pts[i])) {
-      max_G = gradient_at(pts[i]);
+  for (int32_t i = 1; i < (int32_t)hops.size(); ++i) {
+    if (max_G < gradient_at(hops[i])) {
+      max_G = gradient_at(hops[i]);
       max_i = i;
     }
   }
 
-  return pts[max_i];
+  return hops[max_i];
 }
 
 void EDPF::move_to_next_hop(const cv::Point& hop, ChainEnd end) {
@@ -333,35 +333,48 @@ bool EDPF::hit_border(const cv::Point& p) {
   return hit_border(p.x, p.y);
 }
 
-std::vector<cv::Point> EDPF::neighbors(const cv::Point& point,
-                                       DrawDirection dir) {
-  int32_t row = point.x;
-  int32_t col = point.y;
+std::vector<cv::Point> EDPF::neighbors(const cv::Point& hop) {
+  int32_t row = hop.x;
+  int32_t col = hop.y;
 
-  std::vector<cv::Point> pts;
+  std::vector<cv::Point> hops = {
+      cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
+      cv::Point(row - 1, col + 1), cv::Point(row, col - 1),
+      cv::Point(row, col + 1),     cv::Point(row + 1, col - 1),
+      cv::Point(row + 1, col),     cv::Point(row + 1, col + 1)};
+
+  return hops;
+}
+
+std::vector<cv::Point> EDPF::neighbors(const cv::Point& hop,
+                                       DrawDirection dir) {
+  int32_t row = hop.x;
+  int32_t col = hop.y;
+
+  std::vector<cv::Point> hops;
 
   switch (dir) {
     case DrawDirection::Up:
-      pts = {cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
-             cv::Point(row - 1, col + 1)};
+      hops = {cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
+              cv::Point(row - 1, col + 1)};
       break;
     case DrawDirection::Down:
-      pts = {cv::Point(row + 1, col - 1), cv::Point(row + 1, col),
-             cv::Point(row + 1, col + 1)};
+      hops = {cv::Point(row + 1, col - 1), cv::Point(row + 1, col),
+              cv::Point(row + 1, col + 1)};
       break;
     case DrawDirection::Left:
-      pts = {cv::Point(row - 1, col - 1), cv::Point(row, col - 1),
-             cv::Point(row + 1, col - 1)};
+      hops = {cv::Point(row - 1, col - 1), cv::Point(row, col - 1),
+              cv::Point(row + 1, col - 1)};
       break;
     case DrawDirection::Right:
-      pts = {cv::Point(row - 1, col + 1), cv::Point(row, col + 1),
-             cv::Point(row + 1, col + 1)};
+      hops = {cv::Point(row - 1, col + 1), cv::Point(row, col + 1),
+              cv::Point(row + 1, col + 1)};
       break;
     default:
       break;
   }
 
-  return pts;
+  return hops;
 }
 
 EdgeDirection EDPF::draw_tendency(DrawDirection dir) {
@@ -428,8 +441,8 @@ void EDPF::traverse(std::stack<DrawNode>& nodes,
 
   // keep moving up
   while (!hit_border(hop) && direction_at(hop) == (int8_t)tendency) {
-    std::vector<cv::Point> pts = neighbors(hop, dir);
-    const cv::Point& next_hop = find_best_hop(pts);
+    std::vector<cv::Point> hops = neighbors(hop, dir);
+    const cv::Point& next_hop = find_best_hop(hops);
     // hit an existing edge ?
     if (chain_at(next_hop) > 0) {
       return;
@@ -466,7 +479,7 @@ void EDPF::traverse(std::stack<DrawNode>& nodes,
   }
 }
 
-void EDPF::verify_edges() {
+void EDPF::eliminate_short_chains() {
   // determine short chains
   std::vector<int32_t> short_chains;
   for (int32_t i = 0; i < (int32_t)chains_.size(); ++i) {
@@ -483,8 +496,26 @@ void EDPF::verify_edges() {
     int32_t j = short_chains[i];
     chains_.erase(chains_.begin() + j);
   }
+
   std::cout << "Removed " << short_chains.size() << " short chains"
             << std::endl;
+}
+
+void EDPF::reindex_chains() {
+  for (int32_t i = 0; i < (int32_t)chains_.size(); ++i) {
+    const EdgeChain& chain = chains_[i];
+    for (const auto& p : chain.hops) {
+      chain_at(p) = i + 1;
+    }
+  }
+}
+
+void EDPF::verify_edges() {
+  std::cout << "Eliminating short chains" << std::endl;
+  eliminate_short_chains();
+
+  std::cout << "Re-painting chains" << std::endl;
+  reindex_chains();
 
   std::cout << "Skipping Helmholtz principle validation..." << std::endl;
 }
