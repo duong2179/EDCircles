@@ -3,11 +3,12 @@
 EDCircles::EDCircles(const char* src_path) : src_path_(src_path) {
   src_img_ = cv::imread(src_path_, 0);
 
+  // height & width
+  height_ = src_img_.rows;
+  width_ = src_img_.cols;
+
   // EDPF
   EDPF edpf(src_img_);
-
-  // show colored edges
-  edpf.show_colored_edges();
 
   // edge segments
   const std::vector<EdgeChain>& chains = edpf.chains();
@@ -18,9 +19,6 @@ EDCircles::EDCircles(const char* src_path) : src_path_(src_path) {
 
   // line fit
   find_line_candidates();
-
-  // make image shown up
-  cv::waitKey();
 }
 
 EDCircles::~EDCircles() {}
@@ -129,11 +127,13 @@ void EDCircles::find_line_candidates_r(const double* xs,
   while (line_len < num_pts) {
     double d = LineFitter::distance_to_line(xs[idx], ys[idx], line);
     if (d > LINE_FIT_ERR_THRES) {
-      int32_t row = *(ys + idx);
-      int32_t col = *(xs + idx);
-      hops.emplace_back(row, col);
       break;
     }
+
+    int32_t row = *(ys + idx);
+    int32_t col = *(xs + idx);
+    hops.emplace_back(row, col);
+
     ++idx;
     ++line_len;
   }
@@ -145,4 +145,46 @@ void EDCircles::find_line_candidates_r(const double* xs,
 
   num_pts -= line_len;
   find_line_candidates_r(xs + idx, ys + idx, num_pts);
+}
+
+void EDCircles::show_colored_edges() {
+  cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
+
+  int32_t counter = 0;
+  for (const auto& chain : all_edge_segments_) {
+    cv::Vec3b color = XColors[counter++ % XColors.size()];
+    for (const auto& p : chain.hops) {
+      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+    }
+  }
+
+  cv::imshow("Colored Edges", output_img);
+}
+
+void EDCircles::show_colored_circles() {
+  cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
+
+  int32_t counter = 0;
+  for (const auto& circle : circle_candidates_) {
+    cv::Vec3b color = XColors[counter++ % XColors.size()];
+    for (const auto& p : circle.hops) {
+      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+    }
+  }
+
+  cv::imshow("Colored Circles", output_img);
+}
+
+void EDCircles::show_colored_lines() {
+  cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
+
+  int32_t counter = 0;
+  for (const auto& line : line_candidates_) {
+    cv::Vec3b color = XColors[counter++ % XColors.size()];
+    for (const auto& p : line.hops) {
+      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+    }
+  }
+
+  cv::imshow("Colored Lines", output_img);
 }

@@ -33,6 +33,10 @@ EDPF::EDPF(const cv::Mat& src_img) : src_img_(src_img) {
 }
 
 EDPF::~EDPF() {
+  clean();
+}
+
+void EDPF::clean() {
   delete[] gradient_map_;
   delete[] direction_map_;
   delete[] anchor_map_;
@@ -522,30 +526,4 @@ void EDPF::verify_edges() {
 
 const std::vector<EdgeChain>& EDPF::chains() {
   return chains_;
-}
-
-void EDPF::show_colored_edges() {
-  std::vector<cv::Vec3b> colors = {cv::Vec3b(255, 255, 255),   // White
-                                   cv::Vec3b(255, 0, 0),       // Blue
-                                   cv::Vec3b(0, 255, 0),       // Lime
-                                   cv::Vec3b(0, 0, 255),       // Red
-                                   cv::Vec3b(0, 255, 255),     // Yellow
-                                   cv::Vec3b(255, 255, 0),     // Cyan
-                                   cv::Vec3b(255, 0, 255),     // Magenta
-                                   cv::Vec3b(0, 0, 128),       // Maroon
-                                   cv::Vec3b(0, 128, 128),     // Olive
-                                   cv::Vec3b(128, 128, 128)};  // Gray
-
-  cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
-
-  int32_t counter = 0;
-  for (const auto& chain : chains_) {
-    cv::Vec3b color = colors[counter++ % colors.size()];
-    for (const auto& p : chain.hops) {
-      output_img.at<cv::Vec3b>(p.x, p.y) = color;
-    }
-  }
-
-  std::cout << "No. chains: " << chains_.size() << std::endl;
-  cv::imshow("So far", output_img);
 }

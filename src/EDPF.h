@@ -63,6 +63,7 @@ class EDPF {
 
  private:
   void init();
+  void clean();
 
   int8_t smooth_at(int32_t i, int32_t j);
   int8_t smooth_at(const cv::Point& p);
@@ -116,7 +117,6 @@ class EDPF {
   ~EDPF();
 
   const std::vector<EdgeChain>& chains();
-  void show_colored_edges();
 };
 
 #endif
