@@ -13,6 +13,9 @@ int32_t main(int32_t argc, char** argv) {
 
   EDCircles edcircles(argv[1]);
 
+  // show source image
+  edcircles.show_src_img();
+
   // show colored edges
   edcircles.show_colored_edges();
 

@@ -74,6 +74,7 @@ class EDCircles {
   EDCircles(const char* src_path);
   ~EDCircles();
 
+  void show_src_img();
   void show_colored_edges();
   void show_colored_circles();
   void show_colored_lines();

@@ -147,6 +147,10 @@ void EDCircles::find_line_candidates_r(const double* xs,
   find_line_candidates_r(xs + idx, ys + idx, num_pts);
 }
 
+void EDCircles::show_src_img() {
+  cv::imshow("Source Image", src_img_);
+}
+
 void EDCircles::show_colored_edges() {
   cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
 
