@@ -7,8 +7,8 @@ std::ostream& operator<<(std::ostream& os, const CircleEquation& cir) {
 
 double CircleFitter::calc_bar(const std::vector<double>& us) {
   double sum = 0.0;
-  for (const auto& v : us) {
-    sum += v;
+  for (const auto& u : us) {
+    sum += u;
   }
   return sum / us.size();
 }
@@ -16,24 +16,24 @@ double CircleFitter::calc_bar(const std::vector<double>& us) {
 std::vector<double> CircleFitter::calc_u(const std::vector<double>& us,
                                          double bar) {
   std::vector<double> diffs(us.size());
-  for (const auto& v : us) {
-    diffs.push_back(v - bar);
+  for (const auto& u : us) {
+    diffs.push_back(u - bar);
   }
   return diffs;
 }
 
 double CircleFitter::calc_suu(const std::vector<double>& us) {
   double sum = 0.0;
-  for (const auto& v : us) {
-    sum += (v * v);
+  for (const auto& u : us) {
+    sum += (u * u);
   }
   return sum;
 }
 
 double CircleFitter::calc_suuu(const std::vector<double>& us) {
   double sum = 0.0;
-  for (const auto& v : us) {
-    sum += (v * v * v);
+  for (const auto& u : us) {
+    sum += (u * u * u);
   }
   return sum;
 }
@@ -58,7 +58,7 @@ double CircleFitter::calc_suvv(const std::vector<double>& us,
 
 bool CircleFitter::least_square_fit(const std::vector<double>& xs,
                                     const std::vector<double>& ys,
-                                    CircleEquation& cir,
+                                    CircleEquation& ce,
                                     double& error) {
   if (xs.size() != ys.size() || xs.size() < 3) {
     return false;
@@ -95,9 +95,9 @@ bool CircleFitter::least_square_fit(const std::vector<double>& xs,
   double xc = uc + xbar;
   double yc = vc + ybar;
   double r = std::sqrt(uc * uc + vc * vc + (suu + svv) / N);
-  cir.xc = xc;
-  cir.yc = yc;
-  cir.rad = r;
+  ce.xc = xc;
+  ce.yc = yc;
+  ce.rad = r;
 
   double sum_error = 0.0;
   for (int32_t i = 0; i < (int32_t)xs.size(); ++i) {
