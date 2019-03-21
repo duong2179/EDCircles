@@ -11,34 +11,29 @@ EDCircles::EDCircles(const char* src_path) : src_path_(src_path) {
   EDPF edpf(src_img_);
 
   // edge segments
-  const std::vector<EdgeSegment>& chains = edpf.chains();
-  all_edge_segments_ = chains;
+  edge_segments_ = edpf.chains();
 
-  // circle fit
-  find_circle_candidates();
-
-  // line fit
-  find_line_candidates();
+  // edge segments -> circles & lines
+  find_circles_n_lines();
 }
 
 EDCircles::~EDCircles() {}
 
-void EDCircles::find_circle_candidates() {
-  for (int32_t idx = 0; idx < (int32_t)all_edge_segments_.size(); ++idx) {
-    const auto& chain = all_edge_segments_[idx];
+void EDCircles::find_circles_n_lines() {
+  for (const auto& edge_segment : edge_segments_) {
+    int32_t edge_idx = edge_segment.index;
+    int32_t edge_len = edge_segment.hops.size();
 
-    if (!chain.is_closed(CLOSE_EDGE_THRES)) {
-      intmd_edge_idxes_.push_back(idx);
+    if (!edge_segment.is_closed(CLOSE_EDGE_THRES)) {
+      line_segments_[edge_idx] = edge_to_lines(edge_segment);
       continue;
     }
-
-    int32_t edge_len = chain.hops.size();
 
     std::vector<double> xs, ys;
     xs.reserve(edge_len);
     ys.reserve(edge_len);
 
-    for (const auto& p : chain.hops) {
+    for (const auto& p : edge_segment.hops) {
       xs.push_back(p.y);
       ys.push_back(p.x);
     }
@@ -50,44 +45,49 @@ void EDCircles::find_circle_candidates() {
 #ifdef DEBUG_MODE
       std::cout << ce << ", " << edge_len << std::endl;
 #endif
-      circle_candidates_.emplace_back(ce, chain.hops);
+      circle_segments_.emplace_back(ce, edge_segment.hops);
     } else {
-      intmd_edge_idxes_.push_back(idx);
+      line_segments_[edge_idx] = edge_to_lines(edge_segment);
     }
   }
 
-  auto num_candidates = circle_candidates_.size();
-  std::cout << num_candidates << " circle candidates found" << std::endl;
+  int32_t num_circles = circle_segments_.size();
+  std::cout << num_circles << " circle candidates found" << std::endl;
+
+  int32_t num_lines = 0;
+  for (const auto& kv : line_segments_) {
+    const auto& lines_per_edge = kv.second;
+    num_lines += lines_per_edge.size();
+  }
+  std::cout << num_lines << " line candidates found" << std::endl;
 }
 
-void EDCircles::find_line_candidates() {
-  for (int32_t idx : intmd_edge_idxes_) {
-    const auto& chain = all_edge_segments_[idx];
+std::vector<LineSegment> EDCircles::edge_to_lines(
+    const EdgeSegment& edge_segment) {
+  int32_t edge_len = edge_segment.hops.size();
 
-    int32_t edge_len = chain.hops.size();
+  std::vector<double> vec_xs, vec_ys;
+  vec_xs.reserve(edge_len);
+  vec_ys.reserve(edge_len);
 
-    std::vector<double> vec_xs, vec_ys;
-    vec_xs.reserve(edge_len);
-    vec_ys.reserve(edge_len);
-
-    for (const auto& p : chain.hops) {
-      vec_xs.push_back(p.y);
-      vec_ys.push_back(p.x);
-    }
-
-    const double* xs = vec_xs.data();
-    const double* ys = vec_ys.data();
-
-    find_line_candidates_r(xs, ys, edge_len);
+  for (const auto& p : edge_segment.hops) {
+    vec_xs.push_back(p.y);
+    vec_ys.push_back(p.x);
   }
 
-  auto num_candidates = line_candidates_.size();
-  std::cout << num_candidates << " line candidates found" << std::endl;
+  const double* xs = vec_xs.data();
+  const double* ys = vec_ys.data();
+
+  std::vector<LineSegment> lines;
+  edge_to_lines_r(xs, ys, edge_len, lines);
+
+  return lines;
 }
 
-void EDCircles::find_line_candidates_r(const double* xs,
-                                       const double* ys,
-                                       int32_t num_pts) {
+void EDCircles::edge_to_lines_r(const double* xs,
+                                const double* ys,
+                                int32_t num_pts,
+                                std::vector<LineSegment>& lines) {
   if (num_pts < MIN_LINE_LEN) {
     return;
   }
@@ -141,10 +141,10 @@ void EDCircles::find_line_candidates_r(const double* xs,
 #ifdef DEBUG_MODE
   std::cout << line << ", " << line_len << std::endl;
 #endif
-  line_candidates_.emplace_back(line, hops);
+  lines.emplace_back(line, hops);
 
   num_pts -= line_len;
-  find_line_candidates_r(xs + idx, ys + idx, num_pts);
+  edge_to_lines_r(xs + idx, ys + idx, num_pts, lines);
 }
 
 void EDCircles::show_src_img() {
@@ -155,7 +155,7 @@ void EDCircles::show_colored_edges() {
   cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
 
   int32_t counter = 0;
-  for (const auto& chain : all_edge_segments_) {
+  for (const auto& chain : edge_segments_) {
     cv::Vec3b color = XColors[counter++ % XColors.size()];
     for (const auto& p : chain.hops) {
       output_img.at<cv::Vec3b>(p.x, p.y) = color;
@@ -169,7 +169,7 @@ void EDCircles::show_colored_circles() {
   cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
 
   int32_t counter = 0;
-  for (const auto& circle : circle_candidates_) {
+  for (const auto& circle : circle_segments_) {
     cv::Vec3b color = XColors[counter++ % XColors.size()];
     for (const auto& p : circle.hops) {
       output_img.at<cv::Vec3b>(p.x, p.y) = color;
@@ -183,10 +183,13 @@ void EDCircles::show_colored_lines() {
   cv::Mat output_img = cv::Mat(height_, width_, CV_8UC3, cv::Scalar(0, 0, 0));
 
   int32_t counter = 0;
-  for (const auto& line : line_candidates_) {
-    cv::Vec3b color = XColors[counter++ % XColors.size()];
-    for (const auto& p : line.hops) {
-      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+  for (const auto& kv : line_segments_) {
+    const auto& lines_per_edge = kv.second;
+    for (const auto& line : lines_per_edge) {
+      cv::Vec3b color = XColors[counter++ % XColors.size()];
+      for (const auto& p : line.hops) {
+        output_img.at<cv::Vec3b>(p.x, p.y) = color;
+      }
     }
   }
 

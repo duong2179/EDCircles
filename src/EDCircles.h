@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <stack>
 #include <vector>
 
@@ -16,7 +17,7 @@
 #define CIRCLE_FIT_ERR_THRES 1.5
 
 #define MIN_LINE_LEN 10
-#define LINE_FIT_ERR_THRES 2.0
+#define LINE_FIT_ERR_THRES 1.5
 
 static std::vector<cv::Vec3b> XColors = {cv::Vec3b(255, 255, 255),   // White
                                          cv::Vec3b(255, 0, 0),       // Blue
@@ -29,25 +30,24 @@ static std::vector<cv::Vec3b> XColors = {cv::Vec3b(255, 255, 255),   // White
                                          cv::Vec3b(0, 128, 128),     // Olive
                                          cv::Vec3b(128, 128, 128)};  // Gray
 
-struct CircleCandidate {
+struct CircleSegment {
   CircleEquation circle;
   std::vector<cv::Point> hops;
 
-  CircleCandidate(const CircleEquation& ce, const std::vector<cv::Point>& pts)
+  CircleSegment(const CircleEquation& ce, const std::vector<cv::Point>& pts)
       : circle(ce), hops(pts) {}
-  CircleCandidate()
-      : circle(CircleEquation()), hops(std::vector<cv::Point>()) {}
-  ~CircleCandidate() {}
+  CircleSegment() : circle(CircleEquation()), hops(std::vector<cv::Point>()) {}
+  ~CircleSegment() {}
 };
 
-struct LineCandidate {
+struct LineSegment {
   LineEquation line;
   std::vector<cv::Point> hops;
 
-  LineCandidate(const LineEquation& le, const std::vector<cv::Point>& pts)
+  LineSegment(const LineEquation& le, const std::vector<cv::Point>& pts)
       : line(le), hops(pts) {}
-  LineCandidate() : line(LineEquation()), hops(std::vector<cv::Point>()) {}
-  ~LineCandidate() {}
+  LineSegment() : line(LineEquation()), hops(std::vector<cv::Point>()) {}
+  ~LineSegment() {}
 };
 
 class EDCircles {
@@ -57,18 +57,19 @@ class EDCircles {
   int32_t height_, width_;
 
  private:
-  std::vector<EdgeSegment> all_edge_segments_;
-  std::vector<int32_t> intmd_edge_idxes_;
+  std::vector<EdgeSegment> edge_segments_;
 
-  std::vector<CircleCandidate> circle_candidates_;
-  std::vector<LineCandidate> line_candidates_;
+  std::vector<CircleSegment> circle_segments_;
+  std::map<int32_t, std::vector<LineSegment>> line_segments_;
 
  private:
-  void find_circle_candidates();
-  void find_line_candidates();
-  void find_line_candidates_r(const double* xs,
-                              const double* ys,
-                              int32_t num_pts);
+  void find_circles_n_lines();
+
+  std::vector<LineSegment> edge_to_lines(const EdgeSegment& edge_segment);
+  void edge_to_lines_r(const double* xs,
+                       const double* ys,
+                       int32_t num_pts,
+                       std::vector<LineSegment>& lines);
 
  public:
   EDCircles(const char* src_path);
