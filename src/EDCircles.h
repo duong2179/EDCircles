@@ -57,7 +57,7 @@ class EDCircles {
   int32_t height_, width_;
 
  private:
-  std::vector<EdgeChain> all_edge_segments_;
+  std::vector<EdgeSegment> all_edge_segments_;
   std::vector<int32_t> intmd_edge_idxes_;
 
   std::vector<CircleCandidate> circle_candidates_;

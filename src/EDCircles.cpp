@@ -11,7 +11,7 @@ EDCircles::EDCircles(const char* src_path) : src_path_(src_path) {
   EDPF edpf(src_img_);
 
   // edge segments
-  const std::vector<EdgeChain>& chains = edpf.chains();
+  const std::vector<EdgeSegment>& chains = edpf.chains();
   all_edge_segments_ = chains;
 
   // circle fit

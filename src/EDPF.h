@@ -34,11 +34,11 @@ struct DrawNode {
   DrawNode(const cv::Point& p, DrawDirection d) : hop(p), dir(d) {}
 };
 
-struct EdgeChain {
+struct EdgeSegment {
   int32_t index;
   std::vector<cv::Point> hops;
 
-  EdgeChain(int32_t i) : index(i) {}
+  EdgeSegment(int32_t i) : index(i) {}
   bool is_closed(double pct_thres) const;
 };
 
@@ -54,8 +54,8 @@ class EDPF {
   int32_t* chain_map_;
 
   std::vector<cv::Point> anchors_;
-  std::vector<EdgeChain> chains_;
-  EdgeChain* current_chain_;
+  std::vector<EdgeSegment> chains_;
+  EdgeSegment* current_chain_;
 
  private:
   EDPF(const EDPF&) = delete;
@@ -116,7 +116,7 @@ class EDPF {
   EDPF(const cv::Mat& src_img);
   ~EDPF();
 
-  const std::vector<EdgeChain>& chains();
+  const std::vector<EdgeSegment>& chains();
 };
 
 #endif

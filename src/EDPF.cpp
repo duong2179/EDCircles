@@ -1,6 +1,6 @@
 #include "EDPF.h"
 
-bool EdgeChain::is_closed(double pct_thres) const {
+bool EdgeSegment::is_closed(double pct_thres) const {
   if (hops.size() < MIN_EDGE_LEN) {
     return false;
   }
@@ -279,7 +279,7 @@ void EDPF::draw_edges() {
 
 void EDPF::make_new_chain(const cv::Point& hop) {
   int32_t chain_idx = chains_.size() + 1;
-  EdgeChain new_chain(chain_idx);
+  EdgeSegment new_chain(chain_idx);
   new_chain.hops.push_back(hop);
   chains_.push_back(new_chain);
   current_chain_ = &chains_.back();
@@ -487,7 +487,7 @@ void EDPF::eliminate_short_chains() {
   // determine short chains
   std::vector<int32_t> short_chains;
   for (int32_t i = 0; i < (int32_t)chains_.size(); ++i) {
-    const EdgeChain& chain = chains_[i];
+    const EdgeSegment& chain = chains_[i];
     if (chain.hops.size() < MIN_EDGE_LEN) {
       short_chains.push_back(i);
       for (const auto& p : chain.hops) {
@@ -507,7 +507,7 @@ void EDPF::eliminate_short_chains() {
 
 void EDPF::reindex_chains() {
   for (int32_t i = 0; i < (int32_t)chains_.size(); ++i) {
-    const EdgeChain& chain = chains_[i];
+    const EdgeSegment& chain = chains_[i];
     for (const auto& p : chain.hops) {
       chain_at(p) = i + 1;
     }
@@ -524,6 +524,6 @@ void EDPF::verify_edges() {
   std::cout << "Skipping Helmholtz principle validation..." << std::endl;
 }
 
-const std::vector<EdgeChain>& EDPF::chains() {
+const std::vector<EdgeSegment>& EDPF::chains() {
   return chains_;
 }
