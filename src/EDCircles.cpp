@@ -28,7 +28,7 @@ void EDCircles::find_circle_candidates() {
     const auto& chain = all_edge_segments_[idx];
 
     if (!chain.is_closed(CLOSE_EDGE_THRES)) {
-      inter_edge_idxes_.push_back(idx);
+      intmd_edge_idxes_.push_back(idx);
       continue;
     }
 
@@ -52,7 +52,7 @@ void EDCircles::find_circle_candidates() {
 #endif
       circle_candidates_.emplace_back(ce, chain.hops);
     } else {
-      inter_edge_idxes_.push_back(idx);
+      intmd_edge_idxes_.push_back(idx);
     }
   }
 
@@ -61,7 +61,7 @@ void EDCircles::find_circle_candidates() {
 }
 
 void EDCircles::find_line_candidates() {
-  for (int32_t idx : inter_edge_idxes_) {
+  for (int32_t idx : intmd_edge_idxes_) {
     const auto& chain = all_edge_segments_[idx];
 
     int32_t edge_len = chain.hops.size();
