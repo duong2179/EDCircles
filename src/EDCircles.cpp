@@ -34,8 +34,8 @@ void EDCircles::find_circles_n_lines() {
     ys.reserve(edge_len);
 
     for (const auto& p : edge_segment.hops) {
-      xs.push_back(p.y);
-      ys.push_back(p.x);
+      xs.push_back(p.x);
+      ys.push_back(p.y);
     }
 
     CircleEquation ce;
@@ -71,8 +71,8 @@ std::vector<LineSegment> EDCircles::edge_to_lines(
   vec_ys.reserve(edge_len);
 
   for (const auto& p : edge_segment.hops) {
-    vec_xs.push_back(p.y);
-    vec_ys.push_back(p.x);
+    vec_xs.push_back(p.x);
+    vec_ys.push_back(p.y);
   }
 
   const double* xs = vec_xs.data();
@@ -106,7 +106,7 @@ void EDCircles::edge_to_lines_r(const double* xs,
       for (int32_t i = 0; i < MIN_LINE_LEN; ++i) {
         int32_t row = *(ys + idx + i);
         int32_t col = *(xs + idx + i);
-        hops.emplace_back(row, col);
+        hops.emplace_back(col, row);
       }
       found = true;
       break;
@@ -132,7 +132,7 @@ void EDCircles::edge_to_lines_r(const double* xs,
 
     int32_t row = *(ys + idx);
     int32_t col = *(xs + idx);
-    hops.emplace_back(row, col);
+    hops.emplace_back(col, row);
 
     ++idx;
     ++line_len;
@@ -158,7 +158,7 @@ void EDCircles::show_colored_edges() {
   for (const auto& chain : edge_segments_) {
     cv::Vec3b color = XColors[counter++ % XColors.size()];
     for (const auto& p : chain.hops) {
-      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+      output_img.at<cv::Vec3b>(p.y, p.x) = color;
     }
   }
 
@@ -172,7 +172,7 @@ void EDCircles::show_colored_circles() {
   for (const auto& circle : circle_segments_) {
     cv::Vec3b color = XColors[counter++ % XColors.size()];
     for (const auto& p : circle.hops) {
-      output_img.at<cv::Vec3b>(p.x, p.y) = color;
+      output_img.at<cv::Vec3b>(p.y, p.x) = color;
     }
   }
 
@@ -188,7 +188,7 @@ void EDCircles::show_colored_lines() {
     for (const auto& line : lines_per_edge) {
       cv::Vec3b color = XColors[counter++ % XColors.size()];
       for (const auto& p : line.hops) {
-        output_img.at<cv::Vec3b>(p.x, p.y) = color;
+        output_img.at<cv::Vec3b>(p.y, p.x) = color;
       }
     }
   }

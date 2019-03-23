@@ -6,8 +6,8 @@ bool EdgeSegment::is_closed(double pct_thres) const {
   }
   const cv::Point& fp = hops.front();
   const cv::Point& lp = hops.back();
-  double del_x = lp.x - fp.x;
-  double del_y = lp.y - fp.y;
+  double del_x = lp.y - fp.y;
+  double del_y = lp.x - fp.x;
   double d = std::sqrt(del_x * del_x + del_y * del_y);
   return (d * 100.0 / hops.size() < pct_thres);
 }
@@ -60,7 +60,7 @@ int8_t EDPF::smooth_at(int32_t i, int32_t j) {
 }
 
 int8_t EDPF::smooth_at(const cv::Point& p) {
-  return smooth_at(p.x, p.y);
+  return smooth_at(p.y, p.x);
 }
 
 int32_t& EDPF::gradient_at(int32_t i, int32_t j) {
@@ -68,7 +68,7 @@ int32_t& EDPF::gradient_at(int32_t i, int32_t j) {
 }
 
 int32_t& EDPF::gradient_at(const cv::Point& p) {
-  return gradient_at(p.x, p.y);
+  return gradient_at(p.y, p.x);
 }
 
 int8_t& EDPF::direction_at(int32_t i, int32_t j) {
@@ -76,7 +76,7 @@ int8_t& EDPF::direction_at(int32_t i, int32_t j) {
 }
 
 int8_t& EDPF::direction_at(const cv::Point& p) {
-  return direction_at(p.x, p.y);
+  return direction_at(p.y, p.x);
 }
 
 int8_t& EDPF::anchor_at(int32_t i, int32_t j) {
@@ -84,7 +84,7 @@ int8_t& EDPF::anchor_at(int32_t i, int32_t j) {
 }
 
 int8_t& EDPF::anchor_at(const cv::Point& p) {
-  return anchor_at(p.x, p.y);
+  return anchor_at(p.y, p.x);
 }
 
 int32_t& EDPF::chain_at(int32_t i, int32_t j) {
@@ -92,7 +92,7 @@ int32_t& EDPF::chain_at(int32_t i, int32_t j) {
 }
 
 int32_t& EDPF::chain_at(const cv::Point& p) {
-  return chain_at(p.x, p.y);
+  return chain_at(p.y, p.x);
 }
 
 void EDPF::suppress_noise() {
@@ -194,7 +194,7 @@ void EDPF::scan_for_anchors() {
       }
 
       if (anchor_at(i, j) == 1) {
-        anchors_.push_back(cv::Point(i, j));
+        anchors_.push_back(cv::Point(j, i));
       }
     }
   }
@@ -333,45 +333,45 @@ bool EDPF::hit_border(int32_t row, int32_t col) {
 }
 
 bool EDPF::hit_border(const cv::Point& p) {
-  return hit_border(p.x, p.y);
+  return hit_border(p.y, p.x);
 }
 
 std::vector<cv::Point> EDPF::neighbors(const cv::Point& hop) {
-  int32_t row = hop.x;
-  int32_t col = hop.y;
+  int32_t row = hop.y;
+  int32_t col = hop.x;
 
   std::vector<cv::Point> hops = {
-      cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
-      cv::Point(row - 1, col + 1), cv::Point(row, col - 1),
-      cv::Point(row, col + 1),     cv::Point(row + 1, col - 1),
-      cv::Point(row + 1, col),     cv::Point(row + 1, col + 1)};
+      cv::Point(col - 1, row - 1), cv::Point(col, row - 1),
+      cv::Point(col + 1, row - 1), cv::Point(col - 1, row),
+      cv::Point(col + 1, row),     cv::Point(col - 1, row + 1),
+      cv::Point(col, row + 1),     cv::Point(col + 1, row + 1)};
 
   return hops;
 }
 
 std::vector<cv::Point> EDPF::neighbors(const cv::Point& hop,
                                        DrawDirection dir) {
-  int32_t row = hop.x;
-  int32_t col = hop.y;
+  int32_t row = hop.y;
+  int32_t col = hop.x;
 
   std::vector<cv::Point> hops;
 
   switch (dir) {
     case DrawDirection::Up:
-      hops = {cv::Point(row - 1, col - 1), cv::Point(row - 1, col),
-              cv::Point(row - 1, col + 1)};
+      hops = {cv::Point(col - 1, row - 1), cv::Point(col, row - 1),
+              cv::Point(col + 1, row - 1)};
       break;
     case DrawDirection::Down:
-      hops = {cv::Point(row + 1, col - 1), cv::Point(row + 1, col),
-              cv::Point(row + 1, col + 1)};
+      hops = {cv::Point(col - 1, row + 1), cv::Point(col, row + 1),
+              cv::Point(col + 1, row + 1)};
       break;
     case DrawDirection::Left:
-      hops = {cv::Point(row - 1, col - 1), cv::Point(row, col - 1),
-              cv::Point(row + 1, col - 1)};
+      hops = {cv::Point(col - 1, row - 1), cv::Point(col - 1, row),
+              cv::Point(col - 1, row + 1)};
       break;
     case DrawDirection::Right:
-      hops = {cv::Point(row - 1, col + 1), cv::Point(row, col + 1),
-              cv::Point(row + 1, col + 1)};
+      hops = {cv::Point(col + 1, row - 1), cv::Point(col + 1, row),
+              cv::Point(col + 1, row + 1)};
       break;
     default:
       break;
@@ -397,8 +397,8 @@ EdgeDirection EDPF::draw_tendency(DrawDirection dir) {
 
 bool EDPF::validate_chain_width(const cv::Point& next_hop) {
   int32_t neighbors = 0;
-  for (int32_t i = next_hop.x - 1; i <= next_hop.x + 1; ++i) {
-    for (int32_t j = next_hop.y - 1; j <= next_hop.y + 1; ++j) {
+  for (int32_t i = next_hop.y - 1; i <= next_hop.y + 1; ++i) {
+    for (int32_t j = next_hop.x - 1; j <= next_hop.x + 1; ++j) {
       if (chain_at(i, j) == current_chain_->index) {
         ++neighbors;
         if (neighbors > 1) {
