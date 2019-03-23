@@ -204,8 +204,7 @@ void EDPF::scan_for_anchors() {
 void EDPF::sort_anchors() {
   std::sort(anchors_.begin(), anchors_.end(),
             [this](const cv::Point& p1, const cv::Point& p2) {
-              return this->gradient_at(p1.x, p1.y) >
-                     this->gradient_at(p2.x, p2.y);
+              return this->gradient_at(p1) > this->gradient_at(p2);
             });
 }
 
